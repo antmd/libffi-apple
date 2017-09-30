@@ -323,6 +323,16 @@ ffi_call(
 /*@out@*/		void*		rvalue, 
 /*@dependent@*/	void**		avalue);
 
+    void
+    ffi_call_apple(
+                   ffi_cif*    cif,
+                   void        (*fn)(void),
+                   void*       self,
+                   void*       error,
+                   void*       rvalue,
+                   void**      avalue);
+    
+    
 /* Useful for eliminating compiler warnings */
 #define FFI_FN(f) ((void (*)(void))f)
 

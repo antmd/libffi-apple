@@ -31,7 +31,7 @@
 #include <stdlib.h>
 #include <stdarg.h>
 
-#define MAX_GPR_REGS 6
+#define MAX_GPR_REGS 8
 #define MAX_SSE_REGS 8
 
 typedef struct RegisterArgs {
@@ -372,14 +372,38 @@ ffi_prep_cif_machdep(
 
 	return FFI_OK;
 }
+void
+ffi_call_apple(
+               ffi_cif*    cif,
+               void        (*fn)(),
+               void*       self,
+               void*       error,
+               void*       rvalue,
+               void**      avalue);
 
 void
 ffi_call(
-	ffi_cif*	cif,
-	void		(*fn)(),
-	void*		rvalue,
-	void**		avalue)
+         ffi_cif*    cif,
+         void        (*fn)(),
+         void*        rvalue,
+         void**        avalue)
 {
+    ffi_call_apple(cif, fn, NULL, NULL, rvalue, avalue);
+}
+
+
+void
+ffi_call_apple(
+         ffi_cif*    cif,
+         void        (*fn)(),
+         void*       self,
+         void*       error,
+         void*       rvalue,
+         void**      avalue)
+{
+
+
+
 	enum x86_64_reg_class	classes[MAX_CLASSES];
 	char*					stack;
 	char*					argp;
@@ -388,6 +412,9 @@ ffi_call(
 	_Bool					ret_in_memory;
 	RegisterArgs*			reg_args;
 
+    /* Two general purpose registers used for 'self' and 'error' in Swift */
+    int max_normal_regs = MAX_GPR_REGS - 2;
+    
 	/* Can't call 32-bit mode from 64-bit mode.  */
 	FFI_ASSERT(cif->abi == FFI_UNIX64);
 
@@ -423,7 +450,7 @@ ffi_call(
 		n = examine_argument (arg_types[i], classes, 0, &ngpr, &nsse);
 
 		if (n == 0
-			|| gprcount + ngpr > MAX_GPR_REGS
+			|| gprcount + ngpr > max_normal_regs
 			|| ssecount + nsse > MAX_SSE_REGS)
 		{
 			long align = arg_types[i]->alignment;
@@ -490,6 +517,10 @@ ffi_call(
 			}
 		}
 	}
+    
+    /* Copy 'error' and 'self' args into gpr register area */
+    memcpy (&reg_args->gpr[max_normal_regs], &error, 8);
+    memcpy (&reg_args->gpr[max_normal_regs+1], &self, 8);
 
 	ffi_call_unix64 (stack, cif->bytes + sizeof(RegisterArgs),
 		cif->flags, rvalue, fn, ssecount);

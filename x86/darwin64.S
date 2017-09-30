@@ -57,12 +57,26 @@ LUW1:
  movl  %r9d, %eax    /* Set number of SSE registers.  */
 
  /* Load up all argument registers.  */
+
+ movq  48(%r10), %rdi /* Swift Error */
+ testq %rdi, %rdi
+ jz    NoError
+ movq  %rdi, %r12
+
+NoError:
+ movq  56(%r10), %rdi /* Swift context = self */
+ testq %rdi, %rdi
+ jz    NoContext
+ movq  %rdi, %r13
+
+NoContext:
  movq  (%r10), %rdi
  movq  8(%r10), %rsi
  movq  16(%r10), %rdx
  movq  24(%r10), %rcx
  movq  32(%r10), %r8
  movq  40(%r10), %r9
+
  testl %eax, %eax
  jnz Lload_sse
 Lret_from_load_sse:
